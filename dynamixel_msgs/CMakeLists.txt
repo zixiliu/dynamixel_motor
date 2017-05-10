@@ -9,6 +9,7 @@ add_message_files(
   JointState.msg
   MotorState.msg
   MotorStateList.msg
+  Encoder.msg
 )
 
 generate_messages(

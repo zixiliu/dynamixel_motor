@@ -104,7 +104,6 @@ class DynamixelIO(object):
         # verify checksum
         checksum = 255 - sum(data[2:-1]) % 256
         if not checksum == data[-1]: raise ChecksumError(servo_id, data, checksum)
-
         return data
 
     def read(self, servo_id, address, size):
@@ -133,7 +132,7 @@ class DynamixelIO(object):
 
             # wait for response packet from the motor
             timestamp = time.time()
-            time.sleep(0.0013)#0.00235)
+            time.sleep(0.004)
 
             # read response
             data = self.__read_response(servo_id)
@@ -920,6 +919,27 @@ class DynamixelIO(object):
         else:
             raise UnsupportedFeatureError(model, DXL_CURRENT_L)
 
+    def get_enc_feedback(self):
+        """
+
+        Returns the raw value for each of the 3 encoders
+        """
+        # Read in 6 consecutive bytes starting with low value for encoder 1
+        response = self.read(ENC_ID, DXL_GOAL_POSITION_L, 17)
+        enc = []
+
+        if response:
+            self.exception_on_error(response[4], ENC_ID, 'fetching full servo status')
+        if len(response) == 24:
+            enc.append(response[5] + (response[6] << 8))
+            enc.append(response[11] + (response[12] << 8))
+            enc.append(response[13] + (response[14] << 8))
+
+            timestamp = response[-1]
+
+            # return the data in a dictionary
+            return { 'timestamp': timestamp,
+                     'encoders': enc }
 
     def get_feedback(self, servo_id):
         """

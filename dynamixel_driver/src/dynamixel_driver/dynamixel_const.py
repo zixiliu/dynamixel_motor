@@ -40,6 +40,11 @@ __license__ = 'BSD'
 __maintainer__ = 'Antons Rebguns'
 __email__ = 'anton@email.arizona.edu'
 
+"""
+
+Encoder ID Value
+"""
+ENC_ID = 5
 
 """
 Dynamixel Constants
