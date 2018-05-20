@@ -70,10 +70,11 @@ class JointController:
         self.compliance_margin = rospy.get_param(self.controller_namespace + '/joint_compliance_margin', None)
         self.compliance_punch = rospy.get_param(self.controller_namespace + '/joint_compliance_punch', None)
         self.torque_limit = rospy.get_param(self.controller_namespace + '/joint_torque_limit', None)
-        
+
         self.__ensure_limits()
-        
+
         self.speed_service = rospy.Service(self.controller_namespace + '/set_speed', SetSpeed, self.process_set_speed)
+        print("torque enabled")
         self.torque_service = rospy.Service(self.controller_namespace + '/torque_enable', TorqueEnable, self.process_torque_enable)
         self.compliance_slope_service = rospy.Service(self.controller_namespace + '/set_compliance_slope', SetComplianceSlope, self.process_set_compliance_slope)
         self.compliance_marigin_service = rospy.Service(self.controller_namespace + '/set_compliance_margin', SetComplianceMargin, self.process_set_compliance_margin)
@@ -85,17 +86,17 @@ class JointController:
             if self.compliance_slope < DXL_MIN_COMPLIANCE_SLOPE: self.compliance_slope = DXL_MIN_COMPLIANCE_SLOPE
             elif self.compliance_slope > DXL_MAX_COMPLIANCE_SLOPE: self.compliance_slope = DXL_MAX_COMPLIANCE_SLOPE
             else: self.compliance_slope = int(self.compliance_slope)
-            
+
         if self.compliance_margin is not None:
             if self.compliance_margin < DXL_MIN_COMPLIANCE_MARGIN: self.compliance_margin = DXL_MIN_COMPLIANCE_MARGIN
             elif self.compliance_margin > DXL_MAX_COMPLIANCE_MARGIN: self.compliance_margin = DXL_MAX_COMPLIANCE_MARGIN
             else: self.compliance_margin = int(self.compliance_margin)
-            
+
         if self.compliance_punch is not None:
             if self.compliance_punch < DXL_MIN_PUNCH: self.compliance_punch = DXL_MIN_PUNCH
             elif self.compliance_punch > DXL_MAX_PUNCH: self.compliance_punch = DXL_MAX_PUNCH
             else: self.compliance_punch = int(self.compliance_punch)
-            
+
         if self.torque_limit is not None:
             if self.torque_limit < 0: self.torque_limit = 0.0
             elif self.torque_limit > 1: self.torque_limit = 1.0
@@ -175,4 +176,3 @@ class JointController:
 
     def raw_to_rad(self, raw, initial_position_raw, flipped, radians_per_encoder_tick):
         return (initial_position_raw - raw if flipped else raw - initial_position_raw) * radians_per_encoder_tick
-

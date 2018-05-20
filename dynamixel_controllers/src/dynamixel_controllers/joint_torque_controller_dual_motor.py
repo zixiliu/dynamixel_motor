@@ -53,17 +53,17 @@ from dynamixel_msgs.msg import JointState
 class JointTorqueControllerDualMotor(JointController):
     def __init__(self, dxl_io, controller_namespace, port_namespace):
         JointController.__init__(self, dxl_io, controller_namespace, port_namespace)
-        
+
         self.master_id = rospy.get_param(self.controller_namespace + '/motor_master/id')
         self.master_initial_position_raw = rospy.get_param(self.controller_namespace + '/motor_master/init')
         self.master_min_angle_raw = rospy.get_param(self.controller_namespace + '/motor_master/min')
         self.master_max_angle_raw = rospy.get_param(self.controller_namespace + '/motor_master/max')
-        
+
         self.slave_id = rospy.get_param(self.controller_namespace + '/motor_slave/id')
-        
+
         self.flipped = self.master_min_angle_raw > self.master_max_angle_raw
         self.last_commanded_torque = 0.0
-        
+
         self.joint_state = JointState(name=self.joint_name, motor_ids=[self.master_id, self.slave_id])
 
 
@@ -76,38 +76,38 @@ class JointTorqueControllerDualMotor(JointController):
             rospy.logwarn('Available ids: %s' % str(available_ids))
             rospy.logwarn('Specified ids: %d %d' % (self.master_id, self.slave_id))
             return False
-            
+
         self.RADIANS_PER_ENCODER_TICK = rospy.get_param('dynamixel/%s/%d/radians_per_encoder_tick' % (self.port_namespace, self.master_id))
         self.ENCODER_TICKS_PER_RADIAN = rospy.get_param('dynamixel/%s/%d/encoder_ticks_per_radian' % (self.port_namespace, self.master_id))
-        
+
         if self.flipped:
             self.master_min_angle = (self.master_initial_position_raw - self.master_min_angle_raw) * self.RADIANS_PER_ENCODER_TICK
             self.master_max_angle = (self.master_initial_position_raw - self.master_max_angle_raw) * self.RADIANS_PER_ENCODER_TICK
         else:
             self.master_min_angle = (self.master_min_angle_raw - self.master_initial_position_raw) * self.RADIANS_PER_ENCODER_TICK
             self.master_max_angle = (self.master_max_angle_raw - self.master_initial_position_raw) * self.RADIANS_PER_ENCODER_TICK
-            
+
         self.ENCODER_RESOLUTION = rospy.get_param('dynamixel/%s/%d/encoder_resolution' % (self.port_namespace, self.master_id))
         self.MAX_POSITION = self.ENCODER_RESOLUTION - 1
         self.VELOCITY_PER_TICK = rospy.get_param('dynamixel/%s/%d/radians_second_per_encoder_tick' % (self.port_namespace, self.master_id))
         self.MAX_VELOCITY = rospy.get_param('dynamixel/%s/%d/max_velocity' % (self.port_namespace, self.master_id))
         self.MIN_VELOCITY = self.VELOCITY_PER_TICK
-        
+
         if self.compliance_slope is not None: self.set_compliance_slope(self.compliance_slope)
         if self.compliance_margin is not None: self.set_compliance_margin(self.compliance_margin)
         if self.compliance_punch is not None: self.set_compliance_punch(self.compliance_punch)
         if self.torque_limit is not None: self.set_torque_limit(self.torque_limit)
-        
+
         self.joint_max_speed = rospy.get_param(self.controller_namespace + '/joint_max_speed', self.MAX_VELOCITY)
-        
+
         if self.joint_max_speed < self.MIN_VELOCITY: self.joint_max_speed = self.MIN_VELOCITY
         elif self.joint_max_speed > self.MAX_VELOCITY: self.joint_max_speed = self.MAX_VELOCITY
-        
+
         if self.joint_speed < self.MIN_VELOCITY: self.joint_speed = self.MIN_VELOCITY
         elif self.joint_speed > self.joint_max_speed: self.joint_speed = self.joint_max_speed
-        
+
         self.set_speed(0.0)
-        
+
         return True
 
 
@@ -122,9 +122,10 @@ class JointTorqueControllerDualMotor(JointController):
         elif speed > self.joint_max_speed: speed = self.joint_max_speed
         self.last_commanded_torque = speed
         speed_raw = int(round(speed / self.VELOCITY_PER_TICK))
-        mcv_master = (self.master_id, speed_raw)
-        mcv_slave = (self.slave_id, -mcv_master[1])
-        self.dxl_io.set_multi_speed([mcv_master, mcv_slave])
+        self.dxl_io.set_speed(self.master_id, speed_raw)
+        # mcv_master = (self.master_id, speed_raw)
+        # mcv_slave = (self.slave_id, -mcv_master[1])
+        # self.dxl_io.set_multi_speed([mcv_master, mcv_slave])
 
 
     def set_compliance_slope(self, slope):
@@ -165,10 +166,10 @@ class JointTorqueControllerDualMotor(JointController):
     def process_motor_states(self, state_list):
         if self.running:
             states = {}
-            
+
             for state in state_list.motor_states:
                 if state.id in [self.master_id, self.slave_id]: states[state.id] = state
-                
+
             if states:
                 state = states[self.master_id]
                 self.joint_state.motor_temps = [state.temperature, states[self.slave_id].temperature]
@@ -179,10 +180,9 @@ class JointTorqueControllerDualMotor(JointController):
                 self.joint_state.load = state.load
                 self.joint_state.is_moving = state.moving
                 self.joint_state.header.stamp = rospy.Time.from_sec(state.timestamp)
-                
+
                 self.joint_state_pub.publish(self.joint_state)
 
 
     def process_command(self, msg):
         self.set_speed(msg.data)
-
