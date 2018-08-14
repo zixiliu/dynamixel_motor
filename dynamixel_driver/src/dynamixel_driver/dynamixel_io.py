@@ -506,6 +506,22 @@ class DynamixelIO(object):
             self.exception_on_error(response[4], servo_id, 'setting min and max voltage levels to %d and %d' %(min_voltage, max_voltage))
         return response
 
+    def get_enc_feedback(self):
+        """
+        Returns the raw value for each of the 3 encoders
+        """
+        # Read in 6 consecutive bytes starting with low value for encoder 1
+        response = self.read(ENC_ID, DXL_GOAL_POSITION_L, 17)
+        enc = []
+        if response:
+            self.exception_on_error(response[4], ENC_ID, 'fetching full servo status')
+        if len(response) == 24:
+            enc.append(response[5] + (response[6] << 8))
+            enc.append(response[11] + (response[12] << 8))
+            enc.append(response[13] + (response[14] << 8))
+            timestamp = response[-1]
+            # return the data in a dictionary
+            return { 'timestamp': timestamp,'encoders': enc }
 
     ###############################################################
     # These functions can send a single command to a single servo #

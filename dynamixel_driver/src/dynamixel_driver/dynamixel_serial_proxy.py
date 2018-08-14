@@ -283,7 +283,7 @@ class SerialProxy():
         rospy.loginfo('%s, initialization complete.' % status_str[:-2])
 
     def __update_encoder_states(self):
-		num_events = 50
+        num_events = 50
         rates = deque([float(self.update_rate)]*num_events, maxlen=num_events)
         last_time = rospy.Time.now()
         state = 0
