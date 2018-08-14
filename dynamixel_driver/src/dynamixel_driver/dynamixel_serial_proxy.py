@@ -65,6 +65,7 @@ from diagnostic_msgs.msg import KeyValue
 
 from dynamixel_msgs.msg import MotorState
 from dynamixel_msgs.msg import MotorStateList
+from dynamixel_msgs.msg import Encoder
 
 class SerialProxy():
     def __init__(self,
@@ -88,7 +89,8 @@ class SerialProxy():
         self.error_level_temp = error_level_temp
         self.warn_level_temp = warn_level_temp
         self.readback_echo = readback_echo
-
+        self.encoder_id = ENC_ID
+        
         self.actual_rate = update_rate
         self.error_counts = {'non_fatal': 0, 'checksum': 0, 'dropped': 0}
         self.current_state = MotorStateList()
@@ -110,9 +112,31 @@ class SerialProxy():
             rospy.logfatal(e.message)
             sys.exit(1)
 
+        #Try pinging encoders
+        self.__find_encoders()
+        rospy.set_param('encoder', self.encoders)  #set a parameter to indicate whether or not an encoder is present
+            
         self.running = True
         if self.update_rate > 0: Thread(target=self.__update_motor_states).start()
+        if ((self.update_rate > 0) & (self.encoders == True)): Thread(target=self.__update_encoder_states).start()
         if self.diagnostics_rate > 0: Thread(target=self.__publish_diagnostic_information).start()
+
+    def __find_encoders(self):
+        for trial in range(self.num_ping_retries):
+                try:
+                    result = self.dxl_io.ping(self.encoder_id)
+                except Exception as ex:
+                    rospy.logerr('Exception thrown while pinging encoders - %s' % (ex))
+                    continue
+
+        #If encoder is detected, enable encoder functionality
+        if result:
+            self.encoder_state_pub = rospy.Publisher('/encoder_states', Encoder, queue_size = 10)
+            self.encoders = True
+            print("External encoders detected")
+        else:
+            self.encoders = False
+            print("No external encoders found")
 
     def disconnect(self):
         self.running = False
@@ -257,6 +281,51 @@ class SerialProxy():
 
         # Print out to terminal
         rospy.loginfo('%s, initialization complete.' % status_str[:-2])
+
+    def __update_encoder_states(self):
+		num_events = 50
+        rates = deque([float(self.update_rate)]*num_events, maxlen=num_events)
+        last_time = rospy.Time.now()
+        state = 0
+        
+        rate = rospy.Rate(self.update_rate)
+        while not rospy.is_shutdown() and self.running:
+            # get current state of encoders and publish to the encoder_states topic
+            try:
+                state = self.dxl_io.get_enc_feedback()
+                if state:
+                    if dynamixel_io.exception: raise dynamixel_io.exception
+            except dynamixel_io.FatalErrorCodeError, fece:
+                rospy.logerr(fece)
+            except dynamixel_io.NonfatalErrorCodeError, nfece:
+                self.error_counts['non_fatal'] += 1
+                rospy.logdebug(nfece)
+            except dynamixel_io.ChecksumError, cse:
+                self.error_counts['checksum'] += 1
+                rospy.logdebug(cse)
+            except dynamixel_io.DroppedPacketError, dpe:
+                self.error_counts['dropped'] += 1
+                rospy.logdebug(dpe.message)
+            except OSError, ose:
+                if ose.errno != errno.EAGAIN:
+                    rospy.logfatal(errno.errorcode[ose.errno])
+                    rospy.signal_shutdown(errno.errorcode[ose.errno])
+
+            if state:
+                encoder_states = Encoder()
+                encoder_states.timestamp = state['timestamp']
+                encoder_states.encoders = state['encoders']
+                self.encoder_state_pub.publish(encoder_states)
+
+                self.current_encoder_state = encoder_states
+                
+                # calculate actual update rate
+                current_time = rospy.Time.now()
+                rates.append(1.0 / (current_time - last_time).to_sec())
+                self.actual_rate = round(sum(rates)/num_events, 2)
+                last_time = current_time
+                
+            rate.sleep()
 
     def __update_motor_states(self):
         num_events = 50

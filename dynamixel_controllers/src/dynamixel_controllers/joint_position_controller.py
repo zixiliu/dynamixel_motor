@@ -133,6 +133,7 @@ class JointPositionController(JointController):
         self.dxl_io.set_speed(self.motor_id, self.spd_rad_to_raw(speed))
         # Synchronized call is unnecessary for the current design
         # self.dxl_io.set_multi_speed([mcv])
+		#TODO cleanup from WPI
 
     def set_compliance_slope(self, slope):
         if slope < DXL_MIN_COMPLIANCE_SLOPE: slope = DXL_MIN_COMPLIANCE_SLOPE
@@ -188,3 +189,4 @@ class JointPositionController(JointController):
         # Same here too
         # mcv = (self.motor_id, self.pos_rad_to_raw(angle))
         # self.dxl_io.set_multi_position([mcv])
+		#TODO cleanup from WPI

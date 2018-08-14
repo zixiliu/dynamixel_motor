@@ -126,7 +126,7 @@ class JointTorqueControllerDualMotor(JointController):
         # mcv_master = (self.master_id, speed_raw)
         # mcv_slave = (self.slave_id, -mcv_master[1])
         # self.dxl_io.set_multi_speed([mcv_master, mcv_slave])
-
+		#TODO cleanup from WPI
 
     def set_compliance_slope(self, slope):
         if slope < DXL_MIN_COMPLIANCE_SLOPE: slope = DXL_MIN_COMPLIANCE_SLOPE

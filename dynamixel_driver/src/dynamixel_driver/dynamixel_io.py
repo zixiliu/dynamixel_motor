@@ -193,6 +193,7 @@ class DynamixelIO(object):
             # wait for response packet from the motor
             timestamp = time.time()
             time.sleep(0.0013)#0.00235)
+		#TODO cleanup from WPI
 
             # read response
             data = self.__read_response(servo_id, protocol)

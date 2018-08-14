@@ -8,3 +8,4 @@ float64 load        # current load - ratio of applied torque over maximum torque
 float64 voltage     # current voltage (V)
 int32 temperature   # current temperature (degrees Celsius)
 bool moving         # whether the motor is currently in motion
+#TODO check int64 vs int32

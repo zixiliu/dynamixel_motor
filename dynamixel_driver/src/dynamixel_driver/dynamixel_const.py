@@ -40,6 +40,11 @@ __license__ = 'BSD'
 __maintainer__ = 'Antons Rebguns'
 __email__ = 'anton@email.arizona.edu'
 
+"""
+
+Encoder ID Value
+"""
+ENC_ID = 5
 
 """
 Dynamixel Constants
@@ -266,6 +271,7 @@ DXL_MODEL_TO_PARAMS = \
            'rpm_per_tick':       0.111,
            'features':           []
          },
+		#TODO cleanup from WPI changed from 28
      64: { 'name':               'RX-64',
            'encoder_resolution': 1024,
            'range_degrees':      300.0,
