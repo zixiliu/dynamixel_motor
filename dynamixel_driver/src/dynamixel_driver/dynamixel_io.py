@@ -196,10 +196,14 @@ class DynamixelIO(object):
 		#TODO cleanup from WPI
 
             # read response
-            data = self.__read_response(servo_id, protocol)
-            data.append(timestamp)
+            # read response
+            try:
+                response = self.__read_response(servo_id, protocol)
+                response.append(timestamp)
+            except Exception, e:
+                response = []
 
-        return data
+        return response
 
     def write(self, servo_id, address, data, protocol = 1):
         """ Write the values from the "data" list to the servo with "servo_id"
@@ -256,10 +260,13 @@ class DynamixelIO(object):
             time.sleep(0.0013)
 
             # read response
-            data = self.__read_response(servo_id, protocol)
-            data.append(timestamp)
+            try:
+                response = self.__read_response(servo_id, protocol)
+                response.append(timestamp)
+            except Exception, e:
+                response = []
 
-        return data
+        return response
 
     def sync_write(self, address, data, protocol = 1):
         """ Use Broadcast message to send multiple servos instructions at the
